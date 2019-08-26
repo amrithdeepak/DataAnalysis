@@ -1,0 +1,366 @@
+---
+title: "36-464 Final DA"
+author: Amrith Deepak
+date: May 1, 2016
+output: html_document
+---
+
+
+Part a)
+
+(i)
+
+```{r,cache=TRUE}
+setwd("~/Desktop")
+cereal = read.csv("cereal.csv")
+cereal$carbo[56]=0
+cereal$sugars[56]=0
+cereal$potass[4]=0
+cereal$potass[20]=0
+calories=cereal$calories
+protein=cereal$protein
+fat=cereal$fat
+sodium=cereal$sodium
+fiber=cereal$fiber
+carbo=cereal$carbo
+sugars=cereal$sugars
+potass=cereal$potass
+vitamins=cereal$vitamins
+rating=cereal$rating
+par(mfrow=c(2,2))
+hist(calories)
+hist(protein)
+hist(fat)
+hist(sodium)
+hist(fiber)
+hist(carbo)
+hist(sugars)
+hist(potass)
+hist(vitamins)
+hist(rating)
+par(mfrow=c(1,1))
+source("panelfxns.R")
+pairs(cereal[,2:11], lower.panel=panel.cor)
+```
+
+(ii)
+
+The distribution of calories is approximately symmetric with mean around 107 with values between 50 and 160. There are no apparent outliers. 
+
+The distribution of protein is right skewed with mean around 2.5 with values between 1 and 6. There are no apparent outliers, but most values are 1, 2, or 3.
+
+The distribution of fat is right skewed with mean around 2.5 with values  between 0 and 3. There appears to be an outlier with 5 grams of fat, but most values are 0, 1, 2, or 3.
+
+The distribution of sodium is left truncated with mean around 160 with values between 0 and 320. There are no apparent outliers.
+
+The distribution of fiber is right skewed with mean around 2 with values between 0 and 10. There are no apparent outliers, but most values are 0, 1, 2, 3, 4, or 5.
+
+The distribution of carbo is left skewed with mean around 15 with values between 0 and 23. There are no apparent outliers, but most values are between 5 and 20.
+
+The distribution of sugars is approximately uniform with mean around 7 with values between 0 and 15. There are no apparent outliers.
+
+The distribution of potass is right skewed with mean around 92 with values between 0 and 320. There are no apparent outliers.
+
+Vitamins has 3 values, 0, 25, and 100 and most obsevations have value 25.
+
+The distribution of rating is slightly right skewed with mean around 42 with values between 18.04 and 74.47. There are no apparent outliers.
+
+
+(iii)
+
+There is a significant positive correlation between protein and rating and fiber and rating, and a significant negative correlation between calories and rating, fat and rating, and sugars and rating. Other significant positive correlations include calories and fat, sodium, and sugars, protein and fiber, protein and potassium, fiber and potassium. A significant negative correlation is sugars and carbohydrates.
+
+Part b)
+
+```{r,cache=TRUE}
+par(mfrow=c(2,2))
+qqnorm(calories,main="Normal Probability Plot For Calories")
+qqline(calories)
+qqnorm(protein,main="Normal Probability Plot For Protein")
+qqline(protein)
+qqnorm(fat,main="Normal Probability Plot For Fat")
+qqline(fat)
+qqnorm(sodium,main="Normal Probability Plot For Sodium")
+qqline(sodium)
+qqnorm(fiber,main="Normal Probability Plot For Fiber")
+qqline(fiber)
+qqnorm(carbo,main="Normal Probability Plot For Carbohydrates")
+qqline(carbo)
+qqnorm(sugars,main="Normal Probability Plot For Sugars")
+qqline(sugars)
+qqnorm(potass,main="Normal Probability Plot For Potassium")
+qqline(potass)
+qqnorm(vitamins,main="Normal Probability Plot For Vitamins")
+qqline(vitamins)
+qqnorm(rating,main="Normal Probability Plot For Rating")
+qqline(rating)
+par(mfrow=c(1,1))
+```
+
+```{r,cache=TRUE}
+# From hw 3 solution
+cereal2=as.matrix(cereal[,2:10])
+cereal2.mean<-apply(cereal2, 2, mean); cereal2.cov<-cov(cereal2)
+p <- ncol(cereal2); n <- nrow(cereal2)
+d <- NULL
+for (i in 1:n)
+{
+d<-c(d, t(cereal2[i,]-cereal2.mean)%*% solve(cereal2.cov)%*% (cereal2[i,]- cereal2.mean))
+}
+d <- sort(d) #Order the squared distances from smallest to largest
+# Compute quantiles of a chi-square distribution
+q <- NULL
+for (i in 1:n)
+{
+q <- c(q, qchisq((i-0.5)/n, p))
+}
+plot(q, d, type="p", xlab="Chi-square quantiles",
+ylab="Ordered distances", main="Chi-Square Probability Plot")
+```
+
+The variables individually are approximately normal based on the QQplots although some of the variables are slightly skewed. The right skew of fat, protein, and potassium, and the left skew of carbohydates shows in these plots. The left truncation of sodium is also evident. These also show in the histograms.
+
+We dont have evidence to reject the assumption of bivariate normality because none of the scatterplots between variables seems to show a non-linear(curved) pattern.
+
+If the observations come from a multivariate normal distribution, the chi-square plot should display a straight line pattern. Most points in the above figure fall on a straight line. There is an outlier which corresponds to 100%_Bran.
+
+Hence, we don't have significant evidence against multivariate normality.
+
+Part c)
+
+```{r,cache=TRUE}
+# code from lecture 16
+cereal.new<-(cereal[,c(2:10)])
+cereal.new<-scale(cereal.new,center=TRUE, scale=TRUE)
+pca.rating<-princomp(cereal.new,loadings=TRUE);summary(pca.rating,loadings=TRUE);
+plot(pca.rating$sdev^2, xlab="Component Number", ylab="Component Variance",
+type="b", main="Scree Plot")
+```
+
+(i) 3 principal components seems to be appropriate. The elbow in the scree plot isnt obvious, however more than 70% of the variance is explained by the first 3 principal components and the standard deviation for the first 3  principal components is greater than 1. 
+
+(ii) The first principal component is defined by potassium and fiber and it has a positive correlation. The second principal component describes calories and sugars and it has a negative correlation. The third principal component describes carbohydrates and it has a positive correlation.
+
+Part d)
+
+(i)
+
+```{r,cache=TRUE}
+cereal_reg<-lm(rating~pca.rating$scores[,1:3], data=as.data.frame(cereal.new))
+summary(cereal_reg)
+plot(cereal_reg$fit,cereal_reg$residuals, main = "Residual Plot", ylab="Residuals", xlab= "Fitted Values")
+abline(0,0)
+qqnorm(cereal_reg$residuals,main="Normal Probability Plot For Regression Residuals")
+qqline(cereal_reg$residuals)
+```
+
+The residual plot suggests that the linearity, expectation zero, and constant variance assumptions are roughly met. The qqplot suggests that the normality assumption is met.
+
+(ii)
+The second principal component is most significant as it has the highest coefficient in the linear regression. 92.74 % of the variance is explained by the linear regression. All three principal components are significant. This model has a reasonably good fit as the linearlity, expectation zero, constant variance, and normality assumptions have been met. The mean squared error is 12.103 which is reasonably small given that the range of rating values is from 18.04 to 74.47. Also more than 90% of the variance is explained by the linear regression, which is very good.
+
+(iii)
+
+```{r,cache=TRUE}
+cereal_reg<-lm(rating~calories+protein+fat+sodium+fiber+carbo+sugars+potass+vitamins,data=cereal)
+summary(cereal_reg)
+```
+
+One advantage of the linear regression model is that it has principal components, so there are fewer coefficients, making it simpler. A disadvantage of the linear regression model is that it doesn't include  all the variables, which makes it more difficult to interpret, especially when the principal components aren't clear. An advantage of the multiple linear regression model is that it's easier to interpret, and it includes all the variables, not just a set of variables that account for a certain percentage of variation. A disadvantage of this model is that the multiple regression model may give multiple weights to collinear variables.
+
+
+Part e)
+
+```{r,cache=TRUE}
+# from hw 8
+sapply(1:5, function(f) factanal(cereal.new, factors = f, method ="mle")$PVAL)
+factanal(cereal.new, factors=3, method="mle",rotation="varimax")
+factanal(cereal.new, factors=4, method="mle",rotation="varimax")
+factanal(cereal.new, factors=5, method="mle",rotation="varimax")
+```
+
+An appropriate number of factors here is 4 because with 3 factors, we only get 61.3% of the variance accounted for. With 4 factors, we get 71%, which seems sufficient. With 5, the proportion explained goes up to 78.6%, but interpreting 5 factors doesn't seem reasonable. The first factor is mostly defined by the fiber and potassium, which are positively correlated with each other and the first factor. The second factor is mostly defined by calories and carbohydrates which are positively correlated with each other and positively correlated with the second factor. The third factor is mostly defined by sugars which are positively correlated with the third factor. The fourth factor is mostly defined by fat which is positively correlated with the fourth factor.
+
+
+Part f)
+
+In terms of summarizing the covariance/correlation structure, I prefer factor analysis because in principal component analysis, the emphasis is on explaining the total variance, as contrasted with the attempt to explain the covariances/correlations in factor analysis.
+
+In terms of dimension reduction, I prefer principal component analysis because principal component analysis requires essentailly no assumptions, while factor analysis makes several key assumptions. If we change the number of factors, the (estimated) factors change. This does not happen in principal component analysis.
+
+Part g)
+
+(i)
+
+```{r,cache=TRUE}
+rating.categ = ifelse(cereal$rating<36,1,ifelse(cereal$rating<46, 2,3))
+```
+
+(ii)
+
+```{r,cache=TRUE}
+par(mfrow=c(2,2))
+boxplot(calories~rating.categ, ylab="Calories",xlab="Rating Category")
+boxplot(protein~rating.categ, ylab="Protein",xlab="Rating Category")
+boxplot(fat~rating.categ, ylab="Fat",xlab="Rating Category")
+boxplot(sodium~rating.categ, ylab="Sodium",xlab="Rating Category")
+boxplot(fiber~rating.categ, ylab="Fiber",xlab="Rating Category")
+boxplot(carbo~rating.categ, ylab="Carbohydrates",xlab="Rating Category")
+boxplot(sugars~rating.categ, ylab="Sugars",xlab="Rating Category")
+boxplot(potass~rating.categ, ylab="Potassium",xlab="Rating Category")
+boxplot(vitamins~rating.categ, ylab="Vitamins",xlab="Rating Category")
+```
+
+Generally, the cereals with higher rating category seem to have more fiber, protein, and potassium, and tend to have less sugar. High rated cerals seem to also have less fat and calories. Other than that, there are no correlations clearly visible from the boxplot.
+
+(iii)
+
+```{r,cache=TRUE}
+fit<-manova(as.matrix(cereal.new)~as.factor(rating.categ))
+N=dim(cereal)[1]
+E<-(N-1)*cov(fit$residuals)
+H<-(N-1)*cov(fit$fitted.values)
+T=E+H
+summary(fit)
+```
+
+H$_0$: $\mu_1$ = $\mu_2$ = $\mu_3$ vs H$_a$: at least two of the mean vectors are not the same.
+
+Mean vectors here refer to the rating category.
+
+We reject H$_0$ since the p-value is < 2.2 *10$^{-16}$ which is less than 0.05. We have sufficient evidence to believe that the average amount of nutrition components across different consumer rating categories aren't the same and that they are different across atleast 2 consumer rating categories.
+
+(iv, v)
+
+NOTE: Part iv and v are done together.
+
+```{r,cache=TRUE}
+summary.aov(fit)
+aov.fat = aov(fat~as.factor(rating.categ))
+Tukeycomp.fat<-TukeyHSD(aov.fat, conf.level=1-(0.05)/9)
+aov.potass = aov(potass~as.factor(rating.categ))
+Tukeycomp.potass<-TukeyHSD(aov.potass, conf.level=1-(0.05)/9)
+aov.vitamins = aov(vitamins~as.factor(rating.categ))
+Tukeycomp.vitamins<-TukeyHSD(aov.vitamins, conf.level=1-(0.05)/9)
+aov.calories = aov(calories~as.factor(rating.categ))
+aov.sodium = aov(sodium~as.factor(rating.categ))
+Tukeycomp.sodium<-TukeyHSD(aov.sodium, conf.level=1-(0.05)/9)
+Tukeycomp.calories<-TukeyHSD(aov.calories, conf.level=1-(0.05)/9)
+aov.protein = aov(protein~as.factor(rating.categ))
+Tukeycomp.protein<-TukeyHSD(aov.protein, conf.level=1-(0.05)/9)
+aov.fiber = aov(fiber~as.factor(rating.categ))
+Tukeycomp.fiber<-TukeyHSD(aov.fiber, conf.level=1-(0.05)/9)
+aov.carbo = aov(carbo~as.factor(rating.categ))
+Tukeycomp.carbo<-TukeyHSD(aov.carbo, conf.level=1-(0.05)/9)
+aov.sugars = aov(sugars~as.factor(rating.categ))
+Tukeycomp.sugars<-TukeyHSD(aov.sugars, conf.level=1-(0.05)/9)
+Tukeycomp.calories
+Tukeycomp.protein
+Tukeycomp.fat
+Tukeycomp.sodium
+Tukeycomp.fiber
+Tukeycomp.carbo
+Tukeycomp.sugars
+Tukeycomp.potass
+Tukeycomp.vitamins
+```
+
+Group 1 refers to low ratings, group 2 to medium ratings, and group 3 to high ratings.
+The number of calories is greater in group 1 than group 3 and group 2 than group 3.
+There is more protein in cereals in group 3 than group 1.
+There is more sodium in cereals in group 2 than group 3.
+There is more fiber in cereals in group 3 than group 1.
+There are more carbohydrates in cereals in group 2 than group 1.
+There are more sugars in cereals in group 1 than group 2 and more sugars in cereals in group 2 than group 3.
+
+We don't have sufficeint evidence to believe that the fat, potassium, and vitamin content differs between cereals in different categories.
+
+Other than the differences labeled above, we don't have sufficient evidence that the content of any other nutrients differ between groups not listed above.
+
+The conclusion is trustable, because we used a Tukey comparision and checked that 0 isn't in the confidence interval. We also saw in the general ANOVA fit that not all nutrient values across all categories are the same, which is supported in the individual aov tests.
+
+Part h)
+
+(i)
+
+```{r,cache=TRUE}
+# Lecture 23
+library(MASS)
+lda.cereal<-lda(rating.categ~calories+protein+sodium+fat+fiber+carbo+sugars+vitamins+potass, data=as.data.frame(cereal.new))
+lda.cereal
+Region <- (rating.categ); Y <- as.matrix(cereal.new); n <- nrow(Y); p <- ncol(Y)
+ proj<- lda.cereal$scaling; Y.t = Y %*% proj
+Sigma = matrix(0,p,p)
+for (j in 1:3) {
+Sigma = Sigma + t(cereal.new)%*%cereal.new
+}
+Sigma = Sigma/(n-3)
+Sigmainv = solve(Sigma)
+Sigmainv
+```
+
+
+$d_i(y) = \hat{\mu_i}\hat{\Sigma^{-1}}y-1/2\hat{\mu_i}'\hat{\Sigma}^{-1}\hat{\mu_i}+ln \hat{\pi_i}$
+
+The $\hat{\mu_i}$ matrix is given in the group means section of the output.
+```{r,cache=TRUE,echo=FALSE}
+lda.cereal$means
+```
+
+The $\hat{\pi_i}$ matrix is given in the Prior probabilities of groups section.
+```{r,cache=TRUE,echo=FALSE}
+lda.cereal$prior
+```
+The $\hat{\Sigma^{-1}}$ matrix is 
+```{r,cache=TRUE,echo=FALSE}
+Sigmainv
+```
+
+(ii)
+
+```{r,cache=TRUE}
+cols = c("red","darkgreen","blue");
+# Hw 9 solution
+mu = lda.cereal$means %*% proj ;
+pi = lda.cereal$prior
+getab = function(l,m,mu,pi) {
+b = (mu[m,1]-mu[l,1])/(mu[l,2]-mu[m,2])
+norml = sum(mu[l,]^2)
+normm = sum(mu[m,]^2)
+a = (log(pi[m]/pi[l]) + 0.5*(norml-normm))/(mu[l,2]-mu[m,2])
+return(list(a=a,b=b))
+}
+ab12 = getab(1,2,mu,pi) # 1 and 2
+ab13 = getab(1,3,mu,pi) # 1 and 3
+ab23 = getab(2,3,mu,pi) # 2 and 3
+plot(Y.t,col=cols[Region])
+legend("bottomleft",pch=21,col=cols, legend=c("Low Rating","Medium Rating","High Rating"))
+abline(ab12$a, ab12$b, col="black")
+abline(ab23$a, ab23$b, col="black")
+```
+
+
+(iii)
+
+```{r,cache=TRUE}
+fit<-predict(lda.cereal)$class
+table(rating.categ, fit)
+1-sum(diag(table(rating.categ, fit)))/sum(table(rating.categ, fit))
+```
+
+The linear classifier performs well as the APER is 0.04. Also, the linear classifier splits the data very well, as shown in the plot. The boundaries are very clear, as very few points are incorrectly classified.
+
+Part i)
+
+Reducing the dimension of data, and then predicting the actual ratings by a linear regression model is advantageous because you are treating rating as a continuous variable, and you will get an exact value for the predicted rating. One disadvantage is that you are using principal components that account for a certain percent of variance, and not the exact variables. Categorizing the ratings, and then using the nutritional informations to build a linear classifier for ratings is advantageous since you are discretizing into categories, and making the model simpler. You are just trying to group it into a category, which is less complex. However, a disadvantage is that you won't get an exact rating value prediction. Another advantage here is that you are using all the variables, rather than principal components.
+
+Part j)
+
+```{r,cache=TRUE}
+predict(lda.cereal,newdata=data.frame(calories=150,protein=4,fat=3,sodium=95,fiber=3,carbo=16,sugars=11,potass=170,vitamins=25))$class
+cereal_reg_multiple=lm(rating~calories+protein+fat+sodium+fiber+carbo+sugars+potass+vitamins, data=cereal)
+predict(cereal_reg_multiple, newdata = data.frame(calories=150,protein=4,fat=3,sodium=95,fiber=3,carbo=16,sugars=11,potass=170,vitamins=25))
+```
+
+
+The consumer rating using the linear regression is a low rating, as it's in category 1. The consumer rating using the linear classifier is 37.150.
